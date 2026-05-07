@@ -1,0 +1,14 @@
+{
+  "name": "Tadawul Plus | تداول بلس",
+  "description": "منصة تداول بلس للاستثمار الرقمي - تطبيق استثماري متطور لتداول العملات الرقمية وتحقيق أرباح يومية.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "Investment Tracking",
+    "Crypto Wallet",
+    "Daily Profit System",
+    "Admin Dashboard"
+  ]
+}

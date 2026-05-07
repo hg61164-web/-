@@ -1,0 +1,132 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // -------------------------------------------------------------------------
+    // GLOBAL HELPERS
+    // -------------------------------------------------------------------------
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn(); } // Simplified: Allow all signed in for now as per app needs
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Default Deny
+    match /{document=**} { allow read, write: if false; }
+
+    // -------------------------------------------------------------------------
+    // USERS COLLECTION
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      function isValidUser(data) {
+        return data.uid == request.auth.uid &&
+               data.username is string && data.username.size() <= 50 &&
+               data.email is string && data.email.size() <= 100 &&
+               data.balance is number &&
+               data.is_admin is bool &&
+               data.total_profit is number &&
+               data.daily_profit is number &&
+               data.vip_level is number &&
+               data.referral_code is string &&
+               (data.referred_by == null || data.referred_by is string);
+      }
+
+      allow create: if isOwner(userId) && 
+                       isValidUser(incoming()) && 
+                       incoming().created_at == request.time &&
+                       incoming().balance == 0 && 
+                       incoming().total_profit == 0 &&
+                       incoming().daily_profit == 0 &&
+                       incoming().vip_level == 0 &&
+                       (incoming().is_admin == false || (incoming().email == 'hg61164@gmail.com' && incoming().is_admin == true));
+      
+      allow update: if (isOwner(userId) && 
+                        isValidUser(incoming()) && 
+                        incoming().created_at == existing().created_at &&
+                        incoming().diff(existing()).affectedKeys().hasOnly(['username', 'referral_code'])) || 
+                       isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // PLANS COLLECTION
+    // -------------------------------------------------------------------------
+    match /plans/{planId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // DEPOSITS COLLECTION
+    // -------------------------------------------------------------------------
+    match /deposits/{depositId} {
+      allow get: if isVerified() && (isOwner(existing().userId) || isAdmin());
+      allow list: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      function isValidDeposit(data) {
+        return data.userId == request.auth.uid &&
+               data.amount is number && data.amount > 0 &&
+               data.status in ['pending', 'approved', 'rejected'] &&
+               data.created_at == request.time;
+      }
+
+      allow create: if isVerified() && 
+                       isValidDeposit(incoming()) && 
+                       incoming().status == 'pending';
+      
+      allow update: if isAdmin() && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+    }
+
+    // -------------------------------------------------------------------------
+    // WITHDRAWALS COLLECTION
+    // -------------------------------------------------------------------------
+    match /withdrawals/{withdrawalId} {
+      allow get: if isVerified() && (isOwner(existing().userId) || isAdmin());
+      allow list: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      function isValidWithdrawal(data) {
+        return data.userId == request.auth.uid &&
+               data.amount is number && data.amount > 0 &&
+               data.wallet_address is string && data.wallet_address.size() >= 20 &&
+               data.status in ['pending', 'approved', 'rejected'] &&
+               data.created_at == request.time;
+      }
+
+      allow create: if isVerified() && 
+                       isValidWithdrawal(incoming()) && 
+                       incoming().status == 'pending';
+      
+      allow update: if isAdmin() && 
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+    }
+
+    // -------------------------------------------------------------------------
+    // TRANSACTIONS COLLECTION
+    // -------------------------------------------------------------------------
+    match /transactions/{transactionId} {
+      allow get: if isVerified() && (isOwner(existing().userId) || isAdmin());
+      allow list: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+      
+      allow create: if isVerified() && 
+                       incoming().userId == request.auth.uid && 
+                       incoming().created_at == request.time;
+      
+      allow update, delete: if false; // Transactions are immutable
+    }
+
+    // -------------------------------------------------------------------------
+    // JACKPOT_ATTEMPTS COLLECTION
+    // -------------------------------------------------------------------------
+    match /jackpot_attempts/{attemptId} {
+      allow read: if isVerified();
+      allow create: if isVerified() && 
+                       incoming().userId == request.auth.uid && 
+                       incoming().created_at == request.time;
+    }
+  }
+}

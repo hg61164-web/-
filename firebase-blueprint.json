@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and account balance Information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "balance": { "type": "number", "description": "Current available balance" },
+        "total_profit": { "type": "number", "description": "Total profits earned" },
+        "daily_profit": { "type": "number", "description": "Latest daily profit added" },
+        "vip_level": { "type": "number", "default": 0 },
+        "active_plan_id": { "type": "string", "description": "Currently active investment plan ID" },
+        "plan_start_date": { "type": "string", "format": "date-time" },
+        "is_admin": { "type": "boolean", "default": false },
+        "referral_code": { "type": "string" },
+        "referred_by": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username", "email"]
+    },
+    "Plan": {
+      "title": "Investment Plan",
+      "description": "Fixed packages for investment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "daily_income": { "type": "number" },
+        "duration_days": { "type": "number" },
+        "stars": { "type": "number" }
+      },
+      "required": ["name", "price", "daily_income"]
+    },
+    "Deposit": {
+      "title": "Deposit",
+      "description": "User deposit request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "txId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "imageUrl", "status"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal",
+      "description": "User withdrawal request",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "wallet_address": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "wallet_address", "status"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Account transaction history",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["deposit", "withdrawal", "profit", "jackpot_cost", "jackpot_win"] },
+        "status": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "JackpotAttempt": {
+      "title": "Jackpot Attempt",
+      "description": "User play in the jackpot game",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "cost": { "type": "number" },
+        "win_amount": { "type": "number" },
+        "is_winner": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User documents"
+    },
+    "plans/{planId}": {
+      "schema": "Plan",
+      "description": "Predefined investment plans"
+    },
+    "deposits/{depositId}": {
+      "schema": "Deposit",
+      "description": "Deposit requests"
+    },
+    "withdrawals/{withdrawalId}": {
+      "schema": "Withdrawal",
+      "description": "Withdrawal requests"
+    },
+    "transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Transaction logs"
+    },
+    "jackpot_attempts/{attemptId}": {
+      "schema": "JackpotAttempt",
+      "description": "Jackpot game plays"
+    }
+  }
+}
